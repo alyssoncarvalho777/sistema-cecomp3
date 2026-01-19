@@ -16,7 +16,7 @@ def verificar_login():
         return True
 
     # CORREÇÃO AQUI: 3 variáveis exigem 3 valores na lista
-    col1, col2, col3 = st.columns([1, 4]) 
+    col1, col2, col3 = st.columns([1, 3]) 
     
     with col2: # O formulário fica na coluna do meio
         st.title("🏛️ CECOMP - SESAU/RO")
