@@ -1,8 +1,7 @@
 import streamlit as st
 
-# O st.connection gerencia a engine e a session automaticamente
 def get_connection():
-    # 'type="sql"' cria uma conexão SQLAlchemy
+    # Cria a conexão SQL usando o segredo ou padrão local
     return st.connection("central_compras", type="sql", url="sqlite:///central_compras.db")
 
 def get_session():
