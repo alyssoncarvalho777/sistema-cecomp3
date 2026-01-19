@@ -1,92 +1,90 @@
 import streamlit as st
+import time
 from sqlalchemy.exc import IntegrityError
 from database import get_session
 from models import Usuario
-import time
 
 def verificar_login():
     """
-    Gerencia a autenticação e o cadastro de novos usuários.
-    Retorna True se o usuário estiver logado, caso contrário exibe as telas de auth.
+    Gerencia autenticação, cria admin padrão se necessário e salva permissões na sessão.
     """
-    # Inicializa estado de autenticação se não existir
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
+        st.session_state.is_admin = False # Padrão seguro
 
-    # Se já estiver autenticado, retorna True para liberar o App
     if st.session_state.autenticado:
         return True
 
     st.title("🏛️ CECOMP - SESAU/RO")
-
-    # [1] Criação de abas para separar Login de Cadastro
+    
+    # Abas para Login e Cadastro
     tab_login, tab_cadastro = st.tabs(["🔑 Login", "📝 Criar Conta"])
 
-    # --- ABA 1: LOGIN (Código existente) ---
+    # --- ABA LOGIN ---
     with tab_login:
         with st.form("login_seguro"):
             u = st.text_input("Usuário")
-            # [4] Input de senha mascarado
             p = st.text_input("Senha", type="password")
             
-            # [5] Botão de submissão obrigatório para fechar o form
             if st.form_submit_button("Entrar"):
                 session = get_session()
-                # Busca usuário no banco
+                
+                # VERIFICAÇÃO CRÍTICA: Se não houver usuários, cria o Admin automaticamente
+                if session.query(Usuario).count() == 0:
+                    try:
+                        admin = Usuario(
+                            nome="Administrador do Sistema", 
+                            login="admin", 
+                            senha="123", 
+                            is_admin=True  # Define como admin supremo
+                        )
+                        session.add(admin)
+                        session.commit()
+                        st.toast("Usuário 'admin' criado automaticamente!", icon="ℹ️")
+                    except Exception as e:
+                        session.rollback()
+                
+                # Busca usuário e verifica senha
                 user = session.query(Usuario).filter_by(login=u, senha=p).first()
                 
                 if user:
                     st.session_state.autenticado = True
                     st.session_state.usuario_nome = user.nome
+                    st.session_state.is_admin = user.is_admin # Salva permissão [1]
+                    
                     st.success(f"Bem-vindo, {user.nome}!")
                     time.sleep(1)
-                    st.rerun() # [6] Recarrega a página para atualizar o estado
+                    st.rerun() # Recarrega a página [2]
                 else:
-                    st.error("Usuário ou senha incorretos.")
+                    st.error("Credenciais inválidas.")
 
-    # --- ABA 2: CADASTRO (Nova Funcionalidade) ---
+    # --- ABA CADASTRO ---
     with tab_cadastro:
-        st.markdown("### Novo Usuário")
-        # [3] Uso de formulário para agrupar os dados de cadastro
+        st.caption("Novos usuários são criados com perfil comum (sem acesso a configurações).")
         with st.form("form_cadastro"):
             nome_novo = st.text_input("Nome Completo")
-            login_novo = st.text_input("Definir Login (Usuário)")
-            senha_nova = st.text_input("Definir Senha", type="password")
-            senha_confirma = st.text_input("Confirmar Senha", type="password")
+            login_novo = st.text_input("Login Desejado")
+            senha_nova = st.text_input("Senha", type="password")
             
-            # Botão de submissão do cadastro
-            submit_cadastro = st.form_submit_button("Cadastrar Usuário")
-
-            if submit_cadastro:
-                # Validações básicas
-                if not nome_novo or not login_novo or not senha_nova:
-                    st.warning("Preencha todos os campos obrigatórios.")
-                elif senha_nova != senha_confirma:
-                    st.error("As senhas não coincidem.")
-                else:
+            if st.form_submit_button("Cadastrar"):
+                if nome_novo and login_novo and senha_nova:
                     session = get_session()
                     try:
-                        # [2] Lógica do SQLAlchemy para inserir dados
-                        novo_usuario = Usuario(
-                            nome=nome_novo,
-                            login=login_novo,
-                            senha=senha_nova
-                        )
-                        session.add(novo_usuario)
+                        # Cria usuário comum (is_admin=False por padrão no model)
+                        novo = Usuario(nome=nome_novo, login=login_novo, senha=senha_nova)
+                        session.add(novo)
                         session.commit()
-                        st.success("Usuário cadastrado com sucesso! Faça login na outra aba.")
+                        st.success("Usuário criado! Faça login na outra aba.")
                     except IntegrityError:
-                        # Captura erro se o login já existir (devido ao unique=True no models.py)
                         session.rollback()
-                        st.error(f"O login '{login_novo}' já está em uso. Escolha outro.")
-                    except Exception as e:
-                        session.rollback()
-                        st.error(f"Erro ao cadastrar: {e}")
+                        st.error("Erro: Este login já está em uso.")
+                else:
+                    st.warning("Preencha todos os campos.")
 
     return False
 
 def logout():
-    """Remove a autenticação e recarrega a página."""
     st.session_state.autenticado = False
     st.session_state.usuario_nome = ""
+    st.session_state.is_admin = False
     st.rerun()
