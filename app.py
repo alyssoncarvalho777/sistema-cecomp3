@@ -1,20 +1,42 @@
 import streamlit as st
 import pandas as pd
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError # Importação necessária para tratar o erro
 from auth import verificar_login, logout
 from database import get_connection, get_session
-from models import Base, Modalidade, FaseTemplate, Processo
+from models import Base, Setor, Modalidade, FaseTemplate, Processo, Usuario
 
-# 1. Configuração da Página (Obrigatório ser a primeira linha executável) [3]
-st.set_page_config(
-    page_title="CECOMP - SESAU/RO", 
-    layout="wide",
-    page_icon="🏛️"
-)
+# 1. Configuração da Página
+st.set_page_config(page_title="CECOMP - SESAU/RO", layout="wide")
 
-# 2. Inicialização do Banco de Dados
-# Como o banco foi apagado, esta linha cria o arquivo e todas as tabelas vazias automaticamente [1].
+# 2. Inicialização e Correção Automática do Banco
 conn = get_connection()
+session = get_session()
+
+try:
+    # Tenta verificar se a tabela existe e está atualizada
+    # Se a coluna 'is_admin' faltar, isso vai gerar o OperationalError
+    session.query(Usuario).first()
+except OperationalError:
+    # SE O ERRO ACONTECER:
+    st.warning("⚠️ Detectada alteração de estrutura no banco de dados. Atualizando sistema...")
+    
+    # Força a exclusão das tabelas antigas e cria as novas com a coluna is_admin
+    Base.metadata.drop_all(conn.engine)
+    Base.metadata.create_all(conn.engine)
+    
+    st.success("✅ Sistema atualizado! Por favor, recarregue a página (F5).")
+    st.stop() # Para a execução para o usuário recarregar
+except Exception:
+    # Caso as tabelas não existam ainda (primeira execução absoluta)
+    Base.metadata.create_all(conn.engine)
+
+# Garante que as tabelas existem se não caiu no erro acima
 Base.metadata.create_all(conn.engine)
+
+# 3. Verificação de Segurança
+if not verificar_login():
+    st.stop()
 
 # 3. Verificação de Segurança e Login [4]
 # Se não logado, o script para aqui. Se logado, continua.
