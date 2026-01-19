@@ -1,4 +1,18 @@
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Float, DateTime
+from sqlalchemy.orm import relationship, declarative_base 
+# NOTA: Se o erro persistir mesmo com requirements.txt, use a linha abaixo no lugar da linha acima:
+# from sqlalchemy.ext.declarative import declarative_base
+# from sqlalchemy.orm import relationship
+
+from datetime import datetime
+
+# Se estiver usando SQLAlchemy 2.0 puro, a recomendação moderna é:
+# from sqlalchemy.orm import DeclarativeBase
+# class Base(DeclarativeBase):
+#     pass
+
+# Mas para manter compatibilidade com seu código atual, use:
+Base = declarative_base()
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Float, DateTime
 from datetime import datetime
 
