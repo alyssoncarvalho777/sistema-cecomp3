@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Float, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Float, DateTime, Boolean
 from sqlalchemy.orm import relationship, declarative_base 
 # NOTA: Se o erro persistir mesmo com requirements.txt, use a linha abaixo no lugar da linha acima:
 # from sqlalchemy.ext.declarative import declarative_base
