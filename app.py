@@ -5,6 +5,25 @@ from auth import verificar_login, logout
 from database import get_session, get_connection
 from models import Base, Setor, Modalidade, FaseTemplate, Processo, Usuario
 
+# ADICIONE ISTO TEMPORARIAMENTE NO INÍCIO DO MENU
+with st.sidebar:
+    st.divider()
+    if st.button("🔴 DELETAR BANCO DE DADOS"):
+        arquivo_db = 'central_compras.db'
+        if os.path.exists(arquivo_db):
+            try:
+                # Fecha a conexão atual antes de deletar (importante para evitar travamento)
+                st.connection("central_compras").invalidate() 
+                # Se estiver usando sessão manual, pode ser necessário db.close()
+                
+                os.remove(arquivo_db)
+                st.success("Banco de dados deletado! Recarregue a página (F5).")
+                st.cache_resource.clear() # Limpa o cache de conexão do Streamlit
+            except Exception as e:
+                st.error(f"Erro ao deletar: {e}")
+        else:
+            st.warning("O arquivo do banco não foi encontrado (talvez já tenha sido apagado).")
+
 # 1. Configuração da Página (Deve ser a primeira linha)
 st.set_page_config(page_title="CECOMP - SESAU/RO", layout="wide")
 
