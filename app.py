@@ -263,40 +263,8 @@ if menu == "Gestão de Processos":
         )
     else:
         st.info("Nenhum processo encontrado.")
-
 # ... (final da tela Gestão de Processos) ...
     
-    # --- ÁREA TEMPORÁRIA DE CORREÇÃO DE USUÁRIO ---
-    st.divider()
-    with st.expander("🔧 Corrigir meu Setor (Uso Temporário)"):
-        st.write(f"Seu setor atual consta como: **{st.session_state.get('setor_nome')}**")
-        
-        # Busca todos os setores para você escolher o certo
-        todos_setores = session.query(Setor).all()
-        novo_setor = st.selectbox("Mudar meu setor para:", todos_setores, format_func=lambda x: x.nome)
-        
-        if st.button("Atualizar Meu Vinculo"):
-            # Busca o usuário logado no banco
-            usuario_atual = session.query(Usuario).filter_by(login=st.session_state.get("usuario_login")).first()
-            
-            # OBS: Para isso funcionar, precisamos ter salvo o login na sessão no auth.py.
-            # Se não tiver salvo, usamos o nome, mas o login é mais seguro.
-            # Caso não tenha 'usuario_login' na sessão, precisaremos ajustar o auth.py (ver abaixo).
-            
-            if usuario_atual:
-                usuario_atual.setor_id = novo_setor.id
-                session.commit()
-                
-                # Atualiza a sessão imediatamente
-                st.session_state.setor_id = novo_setor.id
-                st.session_state.setor_nome = novo_setor.nome
-                
-                st.success(f"Sucesso! Você agora é do {novo_setor.nome}. A página será recarregada.")
-                time.sleep(2)
-                st.rerun()
-            else:
-                st.error("Erro ao localizar seu usuário no banco.")
-
 # --- TELA 2: ADMINISTRAÇÃO ---
 elif menu == "Configurar Modalidades (Admin)":
     
