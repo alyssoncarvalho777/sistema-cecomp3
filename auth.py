@@ -59,7 +59,7 @@ def verificar_login():
 
     # --- INTERFACE ---
     # Layout corrigido com 3 colunas (proporção 1:4:1 para centralizar)
-    col1, col2, col3 = st.columns([1, 2])
+    col1, col2, col3 = st.columns([1, 2, 3])
     
     with col2:
         st.title("🏛️ Sistema CECOMP")
