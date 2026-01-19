@@ -102,12 +102,12 @@ elif menu == "Novo Processo":
     if not mods:
         st.warning("⚠️ O sistema está vazio. Solicite ao Administrador para cadastrar Modalidades.")
     else:
-        # Formulário para garantir submissão única [10]
+        # Formulário para garantir submissão única 
         with st.form("form_processo"):
             c1, c2 = st.columns(2)
             with c1:
-                sei = st.text_input("Número SEI (Único)") [12]
-                valor = st.number_input("Valor de Referência (R$)", min_value=0.0, format="%.2f") [13]
+                sei = st.text_input("Número SEI (Único)") 
+                valor = st.number_input("Valor de Referência (R$)", min_value=0.0, format="%.2f") 
             with c2:
                 # Selectbox exibindo nomes, mas trabalhando com objetos [6]
                 mod_selecionada = st.selectbox(
@@ -115,14 +115,14 @@ elif menu == "Novo Processo":
                     mods, 
                     format_func=lambda x: x.nome
                 )
-                objeto = st.text_area("Objeto da Compra") [12]
+                objeto = st.text_area("Objeto da Compra") 
                 
-            submitted = st.form_submit_button("Cadastrar Processo") [14]
+            submitted = st.form_submit_button("Cadastrar Processo") 
             
             if submitted:
                 # Validações de Regra de Negócio
                 if not sei or not objeto:
-                    st.error("Preencha os campos obrigatórios (SEI e Objeto).") [15]
+                    st.error("Preencha os campos obrigatórios (SEI e Objeto).") 
                 elif session.query(Processo).filter_by(numero_sei=sei).first():
                     st.error("Erro: Este número SEI já está cadastrado.")
                 else:
@@ -141,7 +141,7 @@ elif menu == "Novo Processo":
                     )
                     session.add(novo_processo)
                     session.commit()
-                    st.success(f"Processo {sei} cadastrado com sucesso!") [15]
+                    st.success(f"Processo {sei} cadastrado com sucesso!") 
 
 # --- MÓDULO 3: CONFIGURAR MODALIDADES (ADMIN) ---
 elif menu == "Configurar Modalidades (Admin)":
