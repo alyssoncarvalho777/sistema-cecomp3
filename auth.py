@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from sqlalchemy.exc import OperationalError
-from auth import verificar_login, logout
 from database import get_connection, get_session
 from models import Base, Setor, Modalidade, FaseTemplate, Processo, Usuario
 
