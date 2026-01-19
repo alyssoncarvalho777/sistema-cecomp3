@@ -15,10 +15,11 @@ def verificar_login():
     if st.session_state.autenticado:
         return True
 
-    # CORREÇÃO AQUI: 3 variáveis exigem 3 valores na lista
+    # --- CORREÇÃO AQUI ---
+    # Passamos 3 valores na lista para preencher as 3 variáveis (col1, col2, col3)
     col1, col2, col3 = st.columns([1, 3]) 
     
-    with col2: # O formulário fica na coluna do meio
+    with col2: # O formulário fica centralizado na coluna do meio
         st.title("🏛️ CECOMP - SESAU/RO")
         
         tab_login, tab_cadastro = st.tabs(["🔑 Acessar", "📝 Criar Conta"])
@@ -56,6 +57,7 @@ def verificar_login():
 
         # --- ABA DE CADASTRO ---
         with tab_cadastro:
+            st.info("Novos cadastros possuem perfil básico.")
             with st.form("cadastro_form"):
                 nome = st.text_input("Nome")
                 login = st.text_input("Login")
