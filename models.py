@@ -8,7 +8,7 @@ class Setor(Base):
     __tablename__ = 'setores'
     id = Column(Integer, primary_key=True)
     nome = Column(String(100), nullable=False)
-    # Relacionamentos para facilitar consultas
+    # Relacionamentos
     usuarios = relationship("Usuario", back_populates="setor")
     processos = relationship("Processo", back_populates="setor_origem")
 
@@ -18,9 +18,9 @@ class Usuario(Base):
     nome = Column(String(100), nullable=False)
     login = Column(String(50), unique=True, nullable=False)
     senha = Column(String(50), nullable=False)
-    is_admin = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False) # Define a permissão
     
-    # VINCULAÇÃO USUÁRIO -> NÚCLEO
+    # Vínculo Obrigatório com Setor
     setor_id = Column(Integer, ForeignKey('setores.id'))
     setor = relationship("Setor", back_populates="usuarios")
 
@@ -49,6 +49,6 @@ class Processo(Base):
     modalidade_id = Column(Integer, ForeignKey('modalidades.id'))
     fase_atual = Column(String(100))
     
-    # VINCULAÇÃO PROCESSO -> NÚCLEO (Setor de Origem)
+    # O Processo herda o setor do usuário que o criou
     setor_origem_id = Column(Integer, ForeignKey('setores.id'))
     setor_origem = relationship("Setor", back_populates="processos")
