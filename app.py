@@ -146,66 +146,97 @@ elif menu == "Novo Processo":
 # --- MÓDULO 3: CONFIGURAR MODALIDADES (ADMIN) ---
 elif menu == "Configurar Modalidades (Admin)":
     
-    # 🔒 BLOQUEIO DE SEGURANÇA [16]
-    # Se a variável de sessão 'is_admin' não for True, impede o acesso.
+    # 🔒 BLOQUEIO DE SEGURANÇA
     if not st.session_state.get("is_admin", False):
         st.error("⛔ ACESSO NEGADO")
         st.info("Você não tem permissão para acessar esta área.")
-        st.stop() # Interrompe a renderização do restante da página [17]
+        st.stop() 
 
-    st.title("⚙️ Gestão de Modalidades")
-    st.markdown("Crie modalidades e defina seu fluxo de fases (Padrão + Personalizadas).")
+    st.title("⚙️ Gestão de Modalidades e Fluxos")
+    st.markdown("""
+    **Instruções:**
+    1. Defina o nome da modalidade.
+    2. A lista de fases abaixo já vem preenchida com o padrão sugerido.
+    3. **Para inserir fases intermediárias:** Basta clicar no texto, criar uma nova linha e digitar.
+    4. **Para remover:** Apague a linha desejada.
+    5. A ordem das linhas será a ordem oficial do processo.
+    """)
     
     with st.form("admin_modalidades"):
         nome_mod = st.text_input("Nome da Modalidade (ex: Pregão Eletrônico)")
         
-        st.divider()
-        st.caption("Montagem do Fluxo de Fases")
+        st.write("---")
+        st.subheader("Definição do Fluxo de Fases")
         
-        # 1. Fases Padrão (Multiselect) [18]
-        lista_padrao = [
-            "Planejamento", "Pesquisa de Preço", "Parecer Jurídico", "Edital", 
-            "Sessão Pública", "Adjudicação", "Homologação", "Empenho", 
-            "Liquidação", "Pagamento"
+        # LISTA PADRÃO SOLICITADA (20 Itens)
+        fases_sugeridas = [
+            "Recepção na CECOMP",
+            "Primeira Análise do Núcleo",
+            "Pesquisa de Preços / ETP / Risco",
+            "Elaboração de TR",
+            "Primeira Análise da SUPEL",
+            "Correção/Ajuste do TR",
+            "Elaboração de Edital",
+            "Análise Jurídica",
+            "Correção/Ajuste do Edital",
+            "Publicação do Pregão",
+            "Recepção de Propostas",
+            "Análise Técnica",
+            "Recurso/Reanálise (Técnico)",
+            "Habilitação",
+            "Recurso/Reanálise (Habilitação)",
+            "Análise para Homologação",
+            "Homologação",
+            "Elaboração da Ata",
+            "Comunicação Publicação da Ata",
+            "Finalizado"
         ]
-        selecao_padrao = st.multiselect("Selecione fases padrão (na ordem):", lista_padrao)
         
-        # 2. Fases Manuais (Text Area) [12]
-        st.caption("Se precisar de fases extras, digite abaixo (uma por linha). Elas entrarão APÓS as selecionadas acima.")
-        extras_txt = st.text_area("Fases Personalizadas", height=100)
+        # Convertemos a lista para uma única string separada por quebras de linha
+        texto_padrao = "\n".join(fases_sugeridas)
+        
+        # O text_area permite edição livre (inserir no meio, apagar, renomear)
+        fases_editaveis = st.text_area(
+            "Edite as fases aqui (uma por linha):", 
+            value=texto_padrao, 
+            height=500  # Altura aumentada para caber todas as fases confortavelmente
+        )
         
         if st.form_submit_button("Salvar Estrutura"):
-            # Processa o texto manual: remove vazios e espaços
-            fases_extras = [f.strip() for f in extras_txt.split('\n') if f.strip()]
-            
-            # Combina as listas
-            todas_fases = selecao_padrao + fases_extras
+            # Processamento:
+            # 1. Separa o texto por linhas
+            # 2. Remove espaços extras (.strip())
+            # 3. Ignora linhas vazias (if f.strip())
+            lista_final_fases = [f.strip() for f in fases_editaveis.split('\n') if f.strip()]
             
             if not nome_mod:
                 st.warning("O nome da modalidade é obrigatório.")
-            elif not todas_fases:
-                st.warning("Defina pelo menos uma fase.")
+            elif not lista_final_fases:
+                st.warning("A lista de fases não pode estar vazia.")
             else:
                 try:
-                    # Transação Atômica no Banco
+                    # Transação no Banco de Dados
                     nova_m = Modalidade(nome=nome_mod)
                     session.add(nova_m)
-                    session.flush() # Garante o ID da modalidade
+                    session.flush() # Gera o ID da modalidade
                     
-                    for i, nome_f in enumerate(todas_fases):
+                    # Salva cada fase com sua ordem baseada na linha em que estava
+                    for i, nome_f in enumerate(lista_final_fases):
                         session.add(FaseTemplate(
                             nome=nome_f,
-                            ordem=i+1,
+                            ordem=i+1, # A ordem é o índice + 1
                             modalidade_id=nova_m.id
                         ))
                     
                     session.commit()
-                    st.success(f"Modalidade '{nome_mod}' criada com {len(todas_fases)} fases!")
+                    st.success(f"Modalidade '{nome_mod}' criada com {len(lista_final_fases)} fases!")
+                    st.toast("Fluxo salvo com sucesso!", icon="✅")
+                    
                 except Exception as e:
                     session.rollback()
                     st.error(f"Erro ao salvar: {e}")
 
-    # Visualização do que já existe (Expander) [19]
+    # Visualização das Modalidades Existentes
     st.divider()
     st.subheader("Modalidades Ativas")
     mods_db = session.query(Modalidade).all()
@@ -217,6 +248,9 @@ elif menu == "Configurar Modalidades (Admin)":
                     .filter_by(modalidade_id=m.id)\
                     .order_by(FaseTemplate.ordem)\
                     .all()
-                st.write("Fluxo: " + " ➡️ ".join([f.nome for f in fases]))
+                
+                # Mostra lista numerada para facilitar conferência da ordem
+                for f in fases:
+                    st.text(f"{f.ordem}. {f.nome}")
     else:
         st.caption("Nenhuma modalidade cadastrada.")
