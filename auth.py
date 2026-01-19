@@ -58,7 +58,7 @@ def verificar_login():
 
     # 4. Interface de Login (Centralizada)
     # Cria 3 colunas para que o formulário fique na do meio (col2)
-    col1, col2, col3 = st.columns([1, 2])
+    col1, col2, col3 = st.columns([1, 2, 3])
     
     with col2:
         st.title("🏛️ CECOMP - SESAU/RO")
