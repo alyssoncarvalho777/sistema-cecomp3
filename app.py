@@ -104,7 +104,7 @@ elif menu == "Novo Processo":
     else:
         # Formulário para garantir submissão única [10]
         with st.form("form_processo"):
-            c1, c2 = st.columns(2) [11]
+            c1, c2 = st.columns(2)
             with c1:
                 sei = st.text_input("Número SEI (Único)") [12]
                 valor = st.number_input("Valor de Referência (R$)", min_value=0.0, format="%.2f") [13]
