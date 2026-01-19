@@ -107,50 +107,97 @@ elif menu == "Novo Processo (Preços)":
                     session.commit()
                     st.success(f"Processo {sei} cadastrado com sucesso!")
 
-# --- TELA: CONFIGURAR MODALIDADES E FASES ---
+# --- TELA: CONFIGURAR MODALIDADES E FASES (COM FASES PERSONALIZADAS) ---
 elif menu == "Configurar Modalidades e Fases":
     st.title("⚙️ Gestão de Modalidades")
     
-    st.info("Cadastre aqui as Modalidades e suas respectivas Fases de tramitação.")
+    st.info("Cadastre a modalidade e defina a ordem das fases (padrão + personalizadas).")
     
     with st.form("form_config_modalidade"):
-        nome_mod = st.text_input("Nome da Nova Modalidade (ex: Pregão Eletrônico)")
+        nome_mod = st.text_input("Nome da Nova Modalidade (ex: Credenciamento)")
         
-        # Multiselect para definir as fases de uma vez
-        opcoes_fases = [
+        st.write("---")
+        st.write("### Definição de Fases")
+        
+        # 1. Lista de fases padrão para seleção rápida [1]
+        fases_padrao = [
             "Planejamento", "Pesquisa de Preço", "Parecer Jurídico", 
-            "Edital", "Disputa", "Adjudicação", "Homologação", "Empenho"
+            "Edital", "Disputa", "Adjudicação", "Homologação", "Empenho",
+            "Liquidação", "Pagamento"
         ]
-        fases_escolhidas = st.multiselect("Selecione as Fases (na ordem)", opcoes_fases)
         
-        submit_mod = st.form_submit_button("Criar Modalidade")
+        # O usuário seleciona as fases comuns
+        selecao_padrao = st.multiselect(
+            "1. Selecione fases padrão (na ordem desejada):", 
+            fases_padrao
+        )
+        
+        # 2. Área de texto para fases manuais [2]
+        st.write("2. Adicione fases personalizadas (se houver):")
+        st.caption("Digite uma fase por linha. Elas serão adicionadas APÓS as fases padrão selecionadas acima.")
+        texto_fases_extras = st.text_area("Fases Manuais", height=100, placeholder="Exemplo:\nRecurso Administrativo\nAnálise Técnica")
+        
+        # Botão de Submissão [3]
+        submit_mod = st.form_submit_button("Criar Modalidade e Fases")
         
         if submit_mod:
-            if not nome_mod or not fases_escolhidas:
-                st.error("Informe o nome e selecione pelo menos uma fase.")
+            # Processamento: Limpa espaços e quebra o texto por linha
+            fases_extras = [f.strip() for f in texto_fases_extras.split('\n') if f.strip()]
+            
+            # Une as duas listas: Fases Padrão + Fases Extras
+            todas_fases = selecao_padrao + fases_extras
+            
+            # Validações Lógicas
+            if not nome_mod:
+                st.error("O nome da modalidade é obrigatório.")
+            elif not todas_fases:
+                st.error("Você precisa definir pelo menos uma fase (selecionada ou manual).")
             else:
-                nova_m = Modalidade(nome=nome_mod)
-                session.add(nova_m)
-                session.flush() # Gera o ID da modalidade para usar nas fases
-                
-                # Cria as fases vinculadas
-                for i, nome_fase in enumerate(fases_escolhidas):
-                    nova_f = FaseTemplate(
-                        nome=nome_fase, 
-                        ordem=i, 
-                        modalidade_id=nova_m.id
-                    )
-                    session.add(nova_f)
-                
-                session.commit()
-                st.success(f"Modalidade '{nome_mod}' criada com {len(fases_escolhidas)} fases!")
+                try:
+                    # Inserção no Banco de Dados (SQLAlchemy)
+                    nova_m = Modalidade(nome=nome_mod)
+                    session.add(nova_m)
+                    session.flush() # Gera o ID da modalidade antes do commit [4]
+                    
+                    # Itera sobre a lista combinada para criar as fases na ordem
+                    for i, nome_fase in enumerate(todas_fases):
+                        nova_f = FaseTemplate(
+                            nome=nome_fase, 
+                            ordem=i + 1,  # Começa da ordem 1
+                            modalidade_id=nova_m.id
+                        )
+                        session.add(nova_f)
+                    
+                    session.commit()
+                    st.success(f"Modalidade '{nome_mod}' criada com sucesso!")
+                    
+                    # Exibe resumo do que foi criado
+                    st.write(f"**Fases cadastradas:** {', '.join(todas_fases)}")
+                    
+                except Exception as e:
+                    session.rollback()
+                    st.error(f"Erro ao salvar: {e}")
 
-    # Exibe o que já existe
+    # Visualização das Modalidades Existentes
     st.divider()
-    st.subheader("Modalidades Existentes")
+    st.subheader("Modalidades Cadastradas")
+    
+    # Consulta atualizada para mostrar as modalidades criadas
     modalidades_db = session.query(Modalidade).all()
-    for m in modalidades_db:
-        # Mostra as fases dentro de um expander para não poluir
-        with st.expander(f"📂 {m.nome}"):
-            fases = session.query(FaseTemplate).filter_by(modalidade_id=m.id).order_by(FaseTemplate.ordem).all()
-            st.write("Fases: " + " ➡️ ".join([f.nome for f in fases]))
+    
+    if not modalidades_db:
+        st.info("Nenhuma modalidade cadastrada ainda.")
+    else:
+        for m in modalidades_db:
+            with st.expander(f"📂 {m.nome}"):
+                # Busca fases ordenadas
+                fases = session.query(FaseTemplate)\
+                    .filter_by(modalidade_id=m.id)\
+                    .order_by(FaseTemplate.ordem)\
+                    .all()
+                
+                if fases:
+                    # Exibe fluxo visual
+                    st.write("fluxo: " + " ➡️ ".join([f.nome for f in fases]))
+                else:
+                    st.warning("Sem fases cadastradas.")
