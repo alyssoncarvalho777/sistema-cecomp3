@@ -159,11 +159,17 @@ def modal_movimentar_processo(processo_id):
                 st.error(f"Erro: {e}")
 
 # --- BARRA LATERAL ---
+# Exibe o Nome do Usuário (Título)
 st.sidebar.title(f"👤 {st.session_state.get('usuario_nome', 'Usuário')}")
-st.sidebar.caption(f"Núcleo: **{st.session_state.get('setor_nome', 'Geral')}**")
 
-perfil = "Administrador" if st.session_state.get('is_admin') else "Operador"
-st.sidebar.text(f"Perfil: {perfil}")
+# Exibe o Núcleo/Setor (Subtítulo/Caption)
+# Se estiver 'Indefinido', algo deu errado no login ou cadastro
+nome_nucleo = st.session_state.get('setor_nome', 'Indefinido')
+st.sidebar.caption(f"Núcleo: **{nome_nucleo}**")
+
+# Exibe o Perfil (Texto simples)
+perfil_usuario = "Administrador" if st.session_state.get('is_admin') else "Operador"
+st.sidebar.text(f"Perfil: {perfil_usuario}")
 
 if st.sidebar.button("Sair"):
     logout()
