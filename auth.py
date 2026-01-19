@@ -4,141 +4,136 @@ from sqlalchemy.exc import IntegrityError
 from database import get_session
 from models import Usuario, Setor
 
-# --- ATENÇÃO: NENHUMA IMPORTAÇÃO DE 'auth' AQUI ---
-# Este arquivo apenas DEFINE as funções. Quem as chama é o app.py.
-
 def verificar_login():
     """
-    Gerencia a autenticação e o cadastro de usuários.
-    Retorna True se o usuário estiver autenticado, False caso contrário.
+    Gerencia Login e Cadastro. Garante a criação correta dos Setores.
     """
-    # 1. Inicializa variáveis de estado da sessão se não existirem
+    # 1. Inicializa Variáveis de Sessão
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
         st.session_state.is_admin = False
         st.session_state.usuario_nome = ""
-        st.session_state.usuario_login = ""
         st.session_state.setor_nome = ""
 
-    # 2. Se já estiver logado, libera o acesso imediatamente
     if st.session_state.autenticado:
         return True
 
-    # 3. Inicialização de Dados Básicos (Garante que existam Setores e Admin)
     session = get_session()
-    
-    # Cria setores padrão se a tabela estiver vazia
+
+    # --- CORREÇÃO: GARANTIR QUE SETORES EXISTAM ---
+    # Verifica se a tabela de setores está vazia. Se estiver, preenche.
     if session.query(Setor).count() == 0:
-        nucleos_padrao = [
+        # Lista completa de setores correta
+        lista_setores = [
             "Administrativo", "NPA", "NAP", "NMP", "NSC", 
             "NSM", "NDJPL", "NOSE", "NMCHE", "NMSG", "NMN", "NLAB"
         ]
-        for n in nucleos_padrao:
-            session.add(Setor(nome=n))
-        session.commit()
+        for nome_setor in lista_setores:
+            session.add(Setor(nome=nome_setor))
+        session.commit() # Salva os setores no banco
 
-    # Cria usuário Admin padrão se a tabela de usuários estiver vazia
+    # --- CORREÇÃO: CRIAR ADMIN VINCULADO AO SETOR CORRETO ---
     if session.query(Usuario).count() == 0:
         try:
-            # Tenta vincular ao setor "Administrativo", ou pega o primeiro disponível
+            # Busca o setor "Administrativo" que acabamos de criar
             setor_adm = session.query(Setor).filter_by(nome="Administrativo").first()
-            if not setor_adm: 
-                setor_adm = session.query(Setor).first()
             
+            # Se por algum motivo falhar, pega o primeiro da lista
+            if not setor_adm:
+                setor_adm = session.query(Setor).first()
+
             if setor_adm:
                 admin = Usuario(
-                    nome="Administrador", 
-                    login="admin", 
-                    senha="123", 
-                    is_admin=True, 
-                    setor_id=setor_adm.id
+                    nome="Administrador",
+                    login="admin",
+                    senha="123",
+                    is_admin=True,
+                    setor_id=setor_adm.id # Vincula o ID do setor
                 )
                 session.add(admin)
                 session.commit()
-                st.toast("Usuário 'admin' (senha: 123) criado automaticamente!", icon="🛡️")
+                st.toast("Admin criado com sucesso (Setor: Administrativo)", icon="🛡️")
         except Exception as e:
             session.rollback()
-            # Opcional: print(f"Erro ao criar admin: {e}")
+            st.error(f"Erro na inicialização: {e}")
 
-    # 4. Interface de Login (Centralizada)
-    # CORREÇÃO: Cria 3 colunas. O formulário ficará na coluna do meio (col2).
-    col1, col2, col3 = st.columns([1, 2, 3]) 
+    # --- INTERFACE ---
+    # Layout corrigido com 3 colunas (proporção 1:4:1 para centralizar)
+    col1, col2, col3 = st.columns([1, 2])
     
     with col2:
-        st.title("🏛️ CECOMP - SESAU/RO")
-        
-        tab_login, tab_cadastro = st.tabs(["🔑 Acessar", "📝 Criar Conta"])
+        st.title("🏛️ Sistema CECOMP")
+        tab_login, tab_cadastro = st.tabs(["🔑 Acessar", "📝 Novo Cadastro"])
 
-        # --- ABA LOGIN ---
+        # ABA 1: LOGIN
         with tab_login:
             with st.form("login_form"):
                 u = st.text_input("Usuário")
                 p = st.text_input("Senha", type="password")
                 
                 if st.form_submit_button("Entrar", type="primary"):
-                    # Busca usuário no banco
                     user = session.query(Usuario).filter_by(login=u, senha=p).first()
                     
                     if user:
-                        # Preenche a sessão com dados do usuário
                         st.session_state.autenticado = True
                         st.session_state.usuario_nome = user.nome
                         st.session_state.usuario_login = user.login
                         st.session_state.is_admin = user.is_admin
                         
-                        # Salva dados do setor para usar nos processos
-                        st.session_state.setor_id = user.setor_id
-                        st.session_state.setor_nome = user.setor.nome if user.setor else "Indefinido"
-                        
-                        st.success(f"Bem-vindo, {user.nome}!")
-                        time.sleep(0.5)
-                        st.rerun() # Recarrega para entrar no app.py
-                    else:
-                        st.error("Usuário ou senha incorretos.")
+                        # Carrega o nome do setor para o App usar depois
+                        if user.setor:
+                            st.session_state.setor_id = user.setor.id
+                            st.session_state.setor_nome = user.setor.nome
+                        else:
+                            st.session_state.setor_nome = "Sem Setor"
 
-        # --- ABA CADASTRO ---
+                        st.success(f"Bem-vindo(a), {user.nome}!")
+                        time.sleep(0.5)
+                        st.rerun()
+                    else:
+                        st.error("Dados incorretos.")
+
+        # ABA 2: CADASTRO CORRETO
         with tab_cadastro:
-            st.info("Seu usuário será vinculado ao Núcleo selecionado.")
+            st.info("Preencha seus dados para solicitar acesso.")
             
-            # Carrega lista de setores para o dropdown
-            lista_nucleos = session.query(Setor).order_by(Setor.nome).all()
+            # Busca os setores AGORA garantidos no banco
+            opcoes_setores = session.query(Setor).order_by(Setor.nome).all()
             
             with st.form("cadastro_form"):
                 nome = st.text_input("Nome Completo")
                 login = st.text_input("Login Desejado")
                 senha = st.text_input("Senha", type="password")
                 
-                # Selectbox obrigatório para vincular ao núcleo
-                nucleo_sel = st.selectbox(
-                    "Selecione seu Núcleo:", 
-                    options=lista_nucleos,
+                # Selectbox exibindo o nome, mas retornando o Objeto Setor
+                setor_selecionado = st.selectbox(
+                    "Selecione seu Núcleo/Setor:",
+                    options=opcoes_setores,
                     format_func=lambda x: x.nome
                 )
                 
-                if st.form_submit_button("Cadastrar"):
-                    if nome and login and senha and nucleo_sel:
+                if st.form_submit_button("Criar Conta"):
+                    if nome and login and senha and setor_selecionado:
                         try:
-                            # Cria novo usuário (sempre is_admin=False por segurança)
+                            # Cria usuário padrão (Operador)
                             novo = Usuario(
-                                nome=nome, 
-                                login=login, 
-                                senha=senha, 
-                                is_admin=False, # Padrão Operador
-                                setor_id=nucleo_sel.id
+                                nome=nome,
+                                login=login,
+                                senha=senha,
+                                is_admin=False,
+                                setor_id=setor_selecionado.id # Pega o ID do objeto selecionado
                             )
                             session.add(novo)
                             session.commit()
-                            st.success("Cadastro realizado! Faça login na aba ao lado.")
+                            st.success("Conta criada! Vá para a aba 'Acessar' para entrar.")
                         except IntegrityError:
                             session.rollback()
-                            st.error("Erro: Este login já está em uso.")
+                            st.error("Erro: Este login já existe.")
                     else:
                         st.warning("Preencha todos os campos.")
-    
-    # Retorna False para impedir que o resto do app carregue antes do login
+
     return False
 
 def logout():
-    """Limpa a sessão e recarrega a página de login."""
     st.session_state.clear()
     st.rerun()
