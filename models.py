@@ -3,17 +3,6 @@ from sqlalchemy.orm import relationship, declarative_base
 # NOTA: Se o erro persistir mesmo com requirements.txt, use a linha abaixo no lugar da linha acima:
 # from sqlalchemy.ext.declarative import declarative_base
 # from sqlalchemy.orm import relationship
-
-from datetime import datetime
-
-# Se estiver usando SQLAlchemy 2.0 puro, a recomendação moderna é:
-# from sqlalchemy.orm import DeclarativeBase
-# class Base(DeclarativeBase):
-#     pass
-
-# Mas para manter compatibilidade com seu código atual, use:
-Base = declarative_base()
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Float, DateTime
 from datetime import datetime
 
 Base = declarative_base()
@@ -24,6 +13,7 @@ class Usuario(Base):
     nome = Column(String(100), nullable=False)
     login = Column(String(50), unique=True, nullable=False)
     senha = Column(String(50), nullable=False)
+    is_admin = Column(Boolean, default=False) # <--- Nova Coluna
 
 class Setor(Base):
     __tablename__ = 'setores'
