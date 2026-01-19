@@ -1,8 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Float, DateTime, Boolean
-from sqlalchemy.orm import relationship, declarative_base 
-# NOTA: Se o erro persistir mesmo com requirements.txt, use a linha abaixo no lugar da linha acima:
-# from sqlalchemy.ext.declarative import declarative_base
-# from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
 Base = declarative_base()
@@ -13,7 +10,8 @@ class Usuario(Base):
     nome = Column(String(100), nullable=False)
     login = Column(String(50), unique=True, nullable=False)
     senha = Column(String(50), nullable=False)
-    is_admin = Column(Boolean, default=False) # <--- Nova Coluna
+    # Define se o usuário tem poderes administrativos
+    is_admin = Column(Boolean, default=False) 
 
 class Setor(Base):
     __tablename__ = 'setores'
@@ -41,6 +39,7 @@ class Processo(Base):
     objeto = Column(Text)
     data_autorizacao = Column(DateTime, default=datetime.now)
     valor_previsto = Column(Float, default=0.0)
+    
     modalidade_id = Column(Integer, ForeignKey('modalidades.id'))
     fase_atual = Column(String(100))
     setor_origem_id = Column(Integer, ForeignKey('setores.id'))
