@@ -62,7 +62,7 @@ def verificar_login():
 
     # 4. Interface de Login (Centralizada)
     # CORREÇÃO: Cria 3 colunas com proporções para centralizar o formulário
-    col1, col2, col3 = st.columns([1, 2]) 
+    col1, col2, col3 = st.columns([1, 2, 3]) 
     
     with col2:
         st.title("🏛️ CECOMP - SESAU/RO")
