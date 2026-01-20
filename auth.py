@@ -5,7 +5,6 @@ import os
 import shutil
 from datetime import datetime
 from sqlalchemy.exc import OperationalError
-from auth import verificar_login, logout
 from database import get_connection, get_session
 from models import Base, Setor, Modalidade, FaseTemplate, Processo, Usuario
 
